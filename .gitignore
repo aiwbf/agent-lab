@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.streamlit/
+我的api账号.txt
+.env
+.env.*
+*.key
+*.pem
+*.secret
+*.txt
