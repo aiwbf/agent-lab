@@ -1,28 +1,53 @@
 import os
-import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
-from io import BytesIO
+from typing import Dict, Any
+
+# 尝试导入 streamlit（在本地 CLI 运行时可能不存在，不影响）
+try:
+    import streamlit as st
+except ImportError:
+    st = None
 
 from openai import OpenAI
 
-try:
-    # 可选：用于导出 Word
-    from docx import Document  # type: ignore
-except Exception:
-    Document = None  # type: ignore
 
-try:
-    # 可选：用于导出 PPT
-    from pptx import Presentation  # type: ignore
-except Exception:
-    Presentation = None  # type: ignore
+def _get_openai_api_key() -> str:
+    """
+    优先从环境变量中读取 OPENAI_API_KEY；
+    如果在 Streamlit 环境中，则从 st.secrets 读取；
+    如果都没有，给出清晰错误提示。
+    """
+    # 1. 先看环境变量（本地 CLI 使用）
+    env_key = os.getenv("OPENAI_API_KEY")
+    if env_key:
+        return env_key
+
+    # 2. 再看 Streamlit secrets（云端部署使用）
+    if st is not None:
+        try:
+            secret_key = st.secrets.get("OPENAI_API_KEY")
+        except Exception:
+            secret_key = None
+        if secret_key:
+            return secret_key
+
+    # 3. 都没有就报错
+    raise RuntimeError(
+        "没有找到 OPENAI_API_KEY。\n"
+        "本地运行时，请在系统环境变量中设置 OPENAI_API_KEY；\n"
+        "Streamlit Cloud 上，请在 Settings → Secrets 中配置：\n"
+        'OPENAI_API_KEY = "sk-xxxxxxxxxx"'
+    )
 
 
-# 统一模型名：避免 gpt-5.1-mini 404 问题
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+# 全局 OpenAI 客户端
+_client = OpenAI(api_key=_get_openai_api_key())
 
-_client = OpenAI()
+# 下面是你原来的其他 import / 代码，保持不变……
+# 比如：
+# from export_utils import export_to_word, export_to_ppt, export_to_excel
+# class GraphMemory: ...
+# def call_llm(...): ...
 
 
 def call_llm(
